@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Open-Source Funding DApp</title>
+
+  <!-- ethers.js -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    header {
+      background: #020617;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    header span {
+      font-size: 14px;
+      color: #cbd5f5;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+      padding: 24px;
+    }
+
+    h2, h3 {
+      margin-top: 0;
+    }
+
+    .card {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button {
+      background: #2563eb;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      color: white;
+      cursor: pointer;
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+
+    button.secondary {
+      background: #334155;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 6px;
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 6px;
+      color: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .progress {
+      background: #1e293b;
+      height: 10px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      width: 0%;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .submitted { background: #64748b; }
+    .active { background: #2563eb; }
+    .success { background: #16a34a; }
+    .failed { background: #dc2626; }
+    .rejected { background: #7c2d12; }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div><b>Open-Source Funding</b></div>
+  <div>
+    <span id="wallet">Not connected</span> |
+    <span id="balance">0 ETH</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- LOGIN -->
+  <div id="login" class="card">
+    <h3>Select Role</h3>
+    <button onclick="login('creator')">Creator</button>
+    <button onclick="login('moderator')" class="secondary">Moderator</button>
+    <button onclick="login('contributor')" class="secondary">Contributor</button>
+  </div>
+
+  <!-- CREATOR UI -->
+  <div id="creatorUI" class="card hidden">
+    <h3>Submit Campaign</h3>
+    <input id="title" placeholder="Project title" />
+    <input id="goal" placeholder="Goal (ETH)" />
+    <input id="duration" placeholder="Duration (seconds)" />
+    <button onclick="submitCampaign()">Submit</button>
+  </div>
+
+  <!-- MODERATOR UI -->
+  <div id="moderatorUI" class="card hidden">
+    <h3>Moderator Panel</h3>
+    <input id="moderatorCampaignId" placeholder="Campaign ID" />
+    <button onclick="approveCampaign()">Approve</button>
+    <button onclick="rejectCampaign()" class="secondary">Reject</button>
+  </div>
+
+  <!-- CONTRIBUTOR UI -->
+  <div id="contributorUI" class="card hidden">
+    <h3>Contribute</h3>
+    <input id="contributeCampaignId" placeholder="Campaign ID" />
+    <input id="contributeAmount" placeholder="ETH amount" />
+    <button onclick="contribute()">Contribute</button>
+    <button onclick="refund()" class="secondary">Refund</button>
+  </div>
+
+  <!-- CAMPAIGNS -->
+  <h3>Live Campaigns</h3>
+  <div id="campaigns" class="grid"></div>
+
+</div>
+
+<!-- JS -->
+<script src="app.js"></script>
+</body>
+</html>

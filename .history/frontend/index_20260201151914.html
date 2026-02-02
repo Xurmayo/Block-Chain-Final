@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Crowdfunding DApp</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+
+<h2>Crowdfunding DApp</h2>
+
+<div id="login">
+  <button onclick="login('creator')">Creator</button>
+  <button onclick="login('moderator')">Moderator</button>
+  <button onclick="login('contributor')">Contributor</button>
+</div>
+
+<div id="app" style="display:none">
+  <p><b>Role:</b> <span id="role"></span></p>
+  <p><b>Wallet:</b> <span id="account"></span></p>
+  <p><b>ETH:</b> <span id="balance"></span></p>
+
+  <div id="creatorUI">
+    <h3>Submit Campaign</h3>
+    <input id="title" placeholder="Title"><br>
+    <input id="goal" placeholder="Goal (ETH)"><br>
+    <input id="duration" placeholder="Duration (sec)"><br>
+    <button onclick="submit()">Submit</button>
+  </div>
+
+  <div id="moderatorUI">
+    <h3>Moderator</h3>
+    <input id="modId" placeholder="Campaign ID"><br>
+    <button onclick="approve()">Approve</button>
+    <button onclick="reject()">Reject</button>
+  </div>
+
+  <div id="contributorUI">
+    <h3>Contribute</h3>
+    <input id="cid" placeholder="Campaign ID"><br>
+    <input id="amt" placeholder="ETH"><br>
+    <button onclick="contribute()">Contribute</button>
+    <button onclick="refund()">Refund</button>
+  </div>
+
+  <h3>All Campaigns</h3>
+  <div id="campaigns"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
