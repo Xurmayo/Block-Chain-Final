@@ -8,7 +8,6 @@ contract ContributorToken is ERC20, Ownable {
 
     constructor()
         ERC20("Contributor Token", "CTKN")
-        Ownable(msg.sender)
     {}
 
     /* ========== MINT (Crowdfunding contract only) ========== */
@@ -19,9 +18,7 @@ contract ContributorToken is ERC20, Ownable {
 
     /* ========== BURN (Crowdfunding contract only) ========== */
 
-    // Allow users to burn their own tokens (for NFT redemption)
-    function burn(address from, uint256 amount) external {
-        require(msg.sender == from || msg.sender == owner(), "Not allowed");
+    function burn(address from, uint256 amount) external onlyOwner {
         _burn(from, amount);
     }
 }

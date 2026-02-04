@@ -1,6 +1,3 @@
-// === Set your deployed NFT contract address here ===
-const NFT_CONTRACT_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0"; 
-
 let provider, signer, contract;
 let tokenContract;
 let role = "";
@@ -36,10 +33,10 @@ const STATES = [
 ];
 
 const TOKEN_ABI = [
-  "function balanceOf(address) view returns (uint256)",
-  "function burn(address from, uint256 amount) external"
+  "function balanceOf(address) view returns (uint256)"
 ];
 
+const NFT_CONTRACT_ADDRESS = "YOUR_DEPLOYED_NFT_CONTRACT_ADDRESS";
 const NFT_ABI = [
   "function mint(address to, string uri) external returns (uint256)",
   "function balanceOf(address owner) view returns (uint256)",
@@ -54,41 +51,49 @@ const NFT_CHOICES = [
   { name: "Bronze Badge", uri: "https://your-nft-metadata-url.com/bronze.json", img: "https://your-nft-image-url.com/bronze.png" }
 ];
 
-let selectedNFTChoice = null;
-let nftContract;
-let selectedNFT = null;
-
 function el(id){ return document.getElementById(id); }
 
 /* LOGIN */
 
 async function login(r) {
   role = r;
+
   provider = new ethers.BrowserProvider(window.ethereum);
   await provider.send("eth_requestAccounts", []);
+
+  // network check: require local Hardhat (31337)
   const network = await provider.getNetwork();
-  if(network.chainId.toString() !== "31337"){
+  // Add this for debugging:
+  console.log("MetaMask chainId:", network.chainId, typeof network.chainId);
+  // Accept both number and string
+  if(network.chainId != 31337 && network.chainId != "31337"){
     alert("Please switch your wallet to local Hardhat network (chainId 31337).");
     return;
   }
+
   signer = await provider.getSigner();
   userAddress = await signer.getAddress();
+
   contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
   try {
     contractModerator = await contract.moderator();
   } catch (err) {
+    console.warn("Could not read moderator from contract:", err);
     contractModerator = "(unknown)";
   }
 
+  // try to get token address and create token contract for balance reads
   try {
     const tokenAddr = await contract.rewardToken();
     tokenContract = new ethers.Contract(tokenAddr, TOKEN_ABI, provider);
   } catch (err) {
+    console.warn("Could not read rewardToken from contract:", err);
     tokenContract = null;
   }
 
   el("wallet").innerText = userAddress.slice(0,6) + "…";
+  // Generate blockies icon
   const icon = blockies.create({ seed: userAddress.toLowerCase(), size: 8, scale: 4 }).toDataURL();
   el("avatar").innerHTML = `<img src="${icon}" style="border-radius:50%;vertical-align:middle;width:32px;height:32px;">`;
 
@@ -100,87 +105,74 @@ async function login(r) {
   el("moderatorUI").classList.toggle("hidden", role !== "moderator");
   el("contributorUI").classList.toggle("hidden", role !== "contributor");
 
-  if (!NFT_CONTRACT_ADDRESS || NFT_CONTRACT_ADDRESS === "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0") {
-    alert("NFT contract address is not set. Please update NFT_CONTRACT_ADDRESS in app.js.");
-    return;
-  }
-
   nftContract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer);
   el("nftSection").classList.remove("hidden");
-  await loadNFTs();
+  loadNFTs();
 
-  await loadCampaigns(true);
+  loadCampaigns();
+  setInterval(loadCampaigns, 4000);
+  // Update the UI every second from cached data so countdowns are smooth
+  setInterval(updateCountdowns, 1000);
+
+  renderNFTChoices();
 }
 
-// NFT Choices Modal
-window.showNFTChoices = function() {
-  selectedNFTChoice = null;
-  renderNFTChoices();
-  el("nftChoicesModal").classList.remove("hidden");
-  el("confirmNFTBtn").disabled = true;
-};
-
-window.hideNFTChoices = function() {
-  el("nftChoicesModal").classList.add("hidden");
-};
+let selectedNFTChoice = null;
 
 function renderNFTChoices() {
-  let html = `<span class="nft-choices-label">Choose your NFT badge:</span>`;
+  let html = "<b>Choose your NFT badge:</b><br>";
   NFT_CHOICES.forEach((choice, idx) => {
-    html += `<img src="${choice.img}" alt="${choice.name}" title="${choice.name}" 
-      class="${selectedNFTChoice===idx?'selected':''}" 
-      onclick="window.selectNFTChoice(${idx})">`;
+    html += `<img src="${choice.img}" width="64" height="64" style="margin:6px;cursor:pointer;border:${selectedNFTChoice===idx?'2px solid #2563eb':'2px solid transparent'};border-radius:8px;" onclick="selectNFTChoice(${idx})" title="${choice.name}">`;
   });
   el("nftChoices").innerHTML = html;
+  el("tradeBtn").disabled = (selectedNFTChoice === null);
 }
 
 window.selectNFTChoice = function(idx) {
   selectedNFTChoice = idx;
   renderNFTChoices();
-  el("confirmNFTBtn").disabled = false;
+  el("tradeBtn").disabled = false;
 };
 
-window.confirmNFTTrade = async function() {
+// Trade CTKN for NFT
+async function tradeForNFT() {
   if(selectedNFTChoice === null) {
     alert("Please select an NFT badge first.");
     return;
   }
+  // Burn 10 CTKN before minting NFT
   try {
-    const tb = await tokenContract.balanceOf(userAddress);
+    // You must be allowed to burn your own tokens, or have a contract do it
+    // If onlyOwner, this will fail unless you are the owner
+    // For demo, remove onlyOwner from mint() in ContributorBadge, or use a backend/minter contract
+    // Burn 10 CTKN
     const burnAmount = ethers.parseEther("10");
-    if (tb < burnAmount) {
-      alert("You need at least 10 CTKN to trade for an NFT badge.");
-      return;
-    }
-    alert("You will need to confirm two transactions in MetaMask: one for minting the NFT, and one for burning CTKN.");
-    const uri = NFT_CHOICES[selectedNFTChoice].uri;
-    let mintTx;
-    try {
-      mintTx = await nftContract.mint(userAddress, uri);
-      await mintTx.wait();
-    } catch (mintErr) {
-      alert("NFT mint failed: " + (mintErr && mintErr.message ? mintErr.message : mintErr));
-      return;
-    }
     await tokenContract.connect(signer).burn(userAddress, burnAmount);
-    hideNFTChoices();
-    await loadNFTs();
-    updateBalance();
+    // Mint NFT
+    const uri = NFT_CHOICES[selectedNFTChoice].uri;
+    await nftContract.mint(userAddress, uri);
+    loadNFTs();
   } catch (err) {
     alert("Trade for NFT failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
-};
+}
 
 /* BALANCE */
 
 async function updateBalance(){
   const b = await provider.getBalance(userAddress);
   el("balance").innerText = ethers.formatEther(b).slice(0,8) + " ETH";
+
+  // update ERC20 token balance if available
   if(tokenContract){
     try {
       const tb = await tokenContract.balanceOf(userAddress);
+      // token has 18 decimals in this repo
       el("tokenBalance").innerText = ethers.formatEther(tb).slice(0,8) + " CTKN";
-    } catch (err) {}
+    } catch (err) {
+      console.warn("Failed to fetch token balance:", err);
+    }
   }
 }
 
@@ -194,12 +186,10 @@ async function submitCampaign(){
       el("duration").value
     );
     await tx.wait();
-    el("title").value = "";
-    el("goal").value = "";
-    el("duration").value = "";
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Submit failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
@@ -217,9 +207,10 @@ async function contribute(campaignId, amount){
     );
     await tx.wait();
     el("amount_" + campaignId).value = "";
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Contribute failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
@@ -238,9 +229,10 @@ async function contributeFromUI(){
     await tx.wait();
     el("contributeCampaignId").value = "";
     el("contributeAmount").value = "";
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Contribute failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
@@ -248,9 +240,10 @@ async function refund(){
   try {
     const tx = await contract.refund(el("contributeCampaignId").value);
     await tx.wait();
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Refund failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
@@ -260,9 +253,10 @@ async function approveCampaignFromCard(id){
   try {
     const tx = await contract.approveCampaign(id);
     await tx.wait();
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Approve failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
@@ -270,9 +264,10 @@ async function rejectCampaignFromCard(id){
   try {
     const tx = await contract.rejectCampaign(id);
     await tx.wait();
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Reject failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
@@ -282,9 +277,10 @@ async function withdrawFromCard(id){
   try {
     const tx = await contract.withdraw(id);
     await tx.wait();
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Withdraw failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
@@ -292,67 +288,43 @@ async function finalizeFromCard(id){
   try {
     const tx = await contract.finalize(id);
     await tx.wait();
-    await loadCampaigns(true);
+    loadCampaigns(true);
   } catch (err) {
     alert("Finalize failed: " + (err && err.message ? err.message : err));
+    console.error(err);
   }
 }
 
 /* CAMPAIGNS */
 
-let campaignsLoading = false;
-let lastCampaignCount = 0;
-
 async function loadCampaigns(forceRender = false){
-  if (campaignsLoading) return;
-  campaignsLoading = true;
-  let newCampaigns = [];
-  let count = 0;
-  try {
-    count = Number(await contract.campaignCount());
-    lastCampaignCount = count;
-  } catch (e) {
-    campaignsLoading = false;
-    return;
-  }
+  const newCampaigns = [];
+  const count = await contract.campaignCount();
 
-  try {
-    for(let i=0;i<count;i++){
-      const campaignData = await contract.campaigns(i);
-      newCampaigns.push({
-        id: i,
-        creator: campaignData[0],
-        title: campaignData[1],
-        goal: campaignData[2].toString(),
-        deadline: campaignData[3].toString(),
-        raised: campaignData[4].toString(),
-        state: Number(campaignData[5])
-      });
-    }
-  } catch (err) {
-    campaignsLoading = false;
-    return;
+  for(let i=0;i<count;i++){
+    const campaignData = await contract.campaigns(i);
+    // Convert all BigInts to strings for safe JSON.stringify
+    newCampaigns.push({
+      id: i,
+      creator: campaignData[0],
+      title: campaignData[1],
+      goal: campaignData[2].toString(),
+      deadline: campaignData[3].toString(),
+      raised: campaignData[4].toString(),
+      state: Number(campaignData[5])
+    });
   }
-
-  if (
-    forceRender ||
-    campaignsCache.length !== newCampaigns.length ||
-    JSON.stringify(newCampaigns) !== JSON.stringify(campaignsCache)
-  ) {
+  
+  // Always render if forced (after user actions), or render if first load or data changed
+  if(forceRender || campaignsCache.length === 0 || JSON.stringify(newCampaigns) !== JSON.stringify(campaignsCache)){
     campaignsCache = newCampaigns;
     render();
   }
-  campaignsLoading = false;
 }
 
 function render(){
   const now = Math.floor(Date.now()/1000);
   el("campaigns").innerHTML = "";
-
-  if (!campaignsCache || campaignsCache.length === 0) {
-    el("campaigns").innerHTML = "<div style='color:#888;padding:24px;'>No campaigns found.</div>";
-    return;
-  }
 
   campaignsCache.forEach((c)=>{
     const campaignId = c.id;
@@ -378,6 +350,7 @@ function render(){
 
     let actions = "";
 
+    // MODERATOR
     if(role === "moderator" && stateIndex === 0){
       actions += `
         <button onclick="approveCampaignFromCard(${campaignId})">Approve</button>
@@ -385,6 +358,7 @@ function render(){
       `;
     }
 
+    // CONTRIBUTOR
     if(role === "contributor" && stateIndex === 2 && deadline > 0 && now < deadline){
       actions += `
         <input type="number" id="amount_${campaignId}" placeholder="ETH" step="0.01" style="display:inline-block; width:60px; margin-right:6px;">
@@ -392,6 +366,7 @@ function render(){
       `;
     }
 
+    // CREATOR
     if(
       role === "creator" &&
       stateIndex === 3 &&
@@ -400,6 +375,7 @@ function render(){
       actions += `<button onclick="withdrawFromCard(${campaignId})">Withdraw</button>`;
     }
 
+    // FINALIZE
     if(stateIndex === 2 && now >= deadline){
       actions += `<button onclick="finalizeFromCard(${campaignId})">Finalize</button>`;
     }
@@ -429,36 +405,35 @@ function updateCountdowns(){
 
 /* NFT FUNCTIONS */
 
+let nftContract;
+let selectedNFT = null;
+
+async function tradeForNFT() {
+  // Burn 10 CTKN, then mint NFT (you need a backend or contract function to coordinate this securely)
+  // For demo: just call mint (in production, require proof of burn)
+  const uri = "https://your-nft-metadata-url.com/badge.json"; // Replace with your metadata
+  await nftContract.mint(userAddress, uri);
+  loadNFTs();
+}
+
 async function loadNFTs() {
   const count = await nftContract.balanceOf(userAddress);
   let html = "";
-  let hasNFT = false;
-  let firstNFT = null;
   for(let i=0; i<count; i++) {
     const tokenId = await nftContract.tokenOfOwnerByIndex(userAddress, i);
     const uri = await nftContract.tokenURI(tokenId);
-    const selected = selectedNFT && selectedNFT.tokenId === tokenId ? "selected" : "";
-    html += `<img src="${uri}" width="64" height="64" class="${selected}" onclick="selectNFT(${tokenId},'${uri}')"> `;
-    hasNFT = true;
-    if (i === 0) firstNFT = { tokenId, uri };
+    html += `<img src="${uri}" width="64" height="64" onclick="selectNFT(${tokenId},'${uri}')"> `;
   }
   el("nftList").innerHTML = html;
-  el("setNFTBtn").style.display = hasNFT ? "inline-block" : "none";
-  if (hasNFT && !selectedNFT && firstNFT) {
-    selectedNFT = firstNFT;
-    el("avatar").innerHTML = `<img src="${firstNFT.uri}" style="border-radius:50%;vertical-align:middle;width:32px;height:32px;">`;
-  }
 }
 
 window.selectNFT = function(tokenId, uri) {
   selectedNFT = { tokenId, uri };
-  el("avatar").innerHTML = `<img src="${uri}" style="border-radius:50%;vertical-align:middle;width:32px;height:32px;">`;
-  loadNFTs();
+  el("setNFTBtn").style.display = "inline-block";
 };
 
 window.setNFTAsAvatar = function() {
   if(selectedNFT) {
     el("avatar").innerHTML = `<img src="${selectedNFT.uri}" style="border-radius:50%;vertical-align:middle;width:32px;height:32px;">`;
-    loadNFTs();
   }
 };

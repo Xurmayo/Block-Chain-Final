@@ -23,15 +23,6 @@ async function main() {
   const crowdfundingAddress = await crowdfunding.getAddress();
   console.log("Crowdfunding deployed to:", crowdfundingAddress);
 
-  /* ========== DEPLOY CONTRIBUTOR BADGE NFT ========== */
-
-  const ContributorBadge = await hre.ethers.getContractFactory("ContributorBadge");
-  const badge = await ContributorBadge.deploy();
-  await badge.waitForDeployment();
-
-  const badgeAddress = await badge.getAddress();
-  console.log("ContributorBadge (NFT) deployed to:", badgeAddress);
-
   /* ========== TRANSFER TOKEN OWNERSHIP ========== */
 
   const tx = await token.transferOwnership(crowdfundingAddress);
@@ -39,10 +30,8 @@ async function main() {
 
   console.log("ContributorToken ownership transferred to Crowdfunding");
 
-  // Print NFT address in a format easy to copy for app.js
-  console.log("\n=== Copy this NFT contract address to the top of your frontend/app.js ===");
-  console.log(`const NFT_CONTRACT_ADDRESS = "${badgeAddress}";`);
-  console.log("=======================================================================");
+  // Log contract address at the end for clarity
+  console.log("=== Crowdfunding contract address (use in frontend):", crowdfundingAddress);
 }
 
 main().catch((error) => {

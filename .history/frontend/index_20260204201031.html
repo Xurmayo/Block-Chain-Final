@@ -5,8 +5,6 @@
   <title>Open-Source Funding DApp</title>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
-  <!-- Add blockies library -->
-  <script src="https://unpkg.com/ethereum-blockies@0.1.1/blockies.min.js"></script>
 
   <style>
     body {
@@ -95,36 +93,6 @@
       background:#22c55e;
       height:100%;
     }
-
-    .nft-modal {
-      background: #1e293b;
-      border: 2px solid #334155;
-      border-radius: 12px;
-      padding: 18px;
-      margin: 12px 0;
-      box-shadow: 0 4px 24px #0008;
-      max-width: 400px;
-    }
-    .nft-choices img {
-      margin: 8px;
-      cursor: pointer;
-      border: 3px solid transparent;
-      border-radius: 12px;
-      transition: border 0.2s;
-      box-shadow: 0 2px 8px #0006;
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-    }
-    .nft-choices img.selected {
-      border: 3px solid #22c55e;
-      box-shadow: 0 0 0 4px #22c55e44;
-    }
-    .nft-choices-label {
-      font-weight: bold;
-      margin-bottom: 8px;
-      display: block;
-    }
   </style>
 </head>
 
@@ -133,7 +101,6 @@
 <header>
   <b>Open-Source Funding DApp</b>
   <div>
-    <span id="avatar" style="vertical-align:middle;"></span>
     <span id="wallet">Not connected</span> |
     <span id="balance">0 ETH</span> |
     <span id="tokenBalance">0 CTKN</span>
@@ -172,19 +139,6 @@
     <input id="contributeAmount" placeholder="ETH amount">
     <button onclick="contributeFromUI()">Contribute</button>
     <button onclick="refund()" class="secondary">Refund (failed)</button>
-  </div>
-
-  <!-- NFT SECTION -->
-  <div id="nftSection" class="card hidden">
-    <h3>NFT Badge</h3>
-    <button onclick="showNFTChoices()" id="tradeBtn">Trade 10 CTKN for NFT Badge</button>
-    <div id="nftChoicesModal" class="nft-modal hidden">
-      <div id="nftChoices" class="nft-choices"></div>
-      <button onclick="confirmNFTTrade()" id="confirmNFTBtn" class="secondary" disabled>Confirm Trade</button>
-      <button onclick="hideNFTChoices()" class="secondary">Cancel</button>
-    </div>
-    <div id="nftList"></div>
-    <button onclick="setNFTAsAvatar()" id="setNFTBtn" class="secondary" style="display:none;">Set NFT as Avatar</button>
   </div>
 
   <h3>Live Campaigns</h3>
