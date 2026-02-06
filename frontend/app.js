@@ -18,7 +18,9 @@ const ABI = [
   "function withdraw(uint256)",
   "function finalize(uint256)",
   "function moderator() view returns(address)",
-  "function rewardToken() view returns(address)"
+  "function rewardToken() view returns(address)",
+  "function getCampaignContributors(uint256) view returns(address[])",
+  "function contributions(uint256,address) view returns(uint256)"
 ];
 
 // Keep state names in sync with the contract enum
@@ -37,7 +39,7 @@ const TOKEN_ABI = [
   "function burn(address from, uint256 amount) external"
 ];
 
-const NFT_CONTRACT_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678"; // <-- put your real address here
+const NFT_CONTRACT_ADDRESS = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"; // <-- put your real address here
 const NFT_ABI = [
   "function mint(address to, string uri) external returns (uint256)",
   "function balanceOf(address owner) view returns (uint256)",
@@ -47,10 +49,24 @@ const NFT_ABI = [
 
 // Example NFT URIs (replace with your actual metadata/image URLs)
 const NFT_CHOICES = [
-  { name: "Gold Badge", uri: "https://your-nft-metadata-url.com/gold.json", img: "https://your-nft-image-url.com/gold.png" },
-  { name: "Silver Badge", uri: "https://your-nft-metadata-url.com/silver.json", img: "https://your-nft-image-url.com/silver.png" },
-  { name: "Bronze Badge", uri: "https://your-nft-metadata-url.com/bronze.json", img: "https://your-nft-image-url.com/bronze.png" }
+  {
+    name: "Gold Badge",
+    uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/gold.json",
+    img: "https://cdn-icons-png.flaticon.com/512/2583/2583344.png"
+  },
+  {
+    name: "Silver Badge",
+    uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/silver.json",
+    img: "https://cdn-icons-png.flaticon.com/512/2583/2583319.png"
+  },
+  {
+    name: "Bronze Badge",
+    uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/bronze.json",
+    img: "https://cdn-icons-png.flaticon.com/512/2583/2583434.png"
+  }
 ];
+
+
 
 let selectedNFTChoice = null;
 let nftContract;
@@ -384,7 +400,7 @@ async function loadCampaigns(forceRender = false){
   campaignsLoading = false;
 }
 
-function render(){
+async function render(){
   const now = Math.floor(Date.now()/1000);
   el("campaigns").innerHTML = "";
 
@@ -446,6 +462,11 @@ function render(){
     if(stateIndex === 2 && now >= deadline){
       actions += `<button onclick="finalizeFromCard(${campaignId})">Finalize</button>`;
     }
+    actions += `
+      <button onclick="showContributors(${campaignId})">
+        View Contributors
+      </button>
+    `;
 
     el("campaigns").innerHTML += `
       <div class="card">
@@ -470,34 +491,141 @@ function updateCountdowns(){
   });
 }
 
-/* NFT FUNCTIONS */
+// Contributions для нуржана йоу
 
-async function tradeForNFT() {
-  // Burn 10 CTKN, then mint NFT (you need a backend or contract function to coordinate this securely)
-  // For demo: just call mint (in production, require proof of burn)
-  const uri = "https://your-nft-metadata-url.com/badge.json"; // Replace with your metadata
-  await nftContract.mint(userAddress, uri);
-  loadNFTs();
+async function showContributors(campaignId){
+
+  try{
+
+    const contributors = await contract.getCampaignContributors(campaignId);
+
+    if(contributors.length === 0){
+      alert("No contributors yet");
+      return;
+    }
+
+    let message = "Contributors:\n\n";
+
+    for(const addr of contributors){
+
+      const amount = await contract.contributions(campaignId, addr);
+
+      message += `${addr} → ${ethers.formatEther(amount)} ETH\n`;
+    }
+
+    alert(message);
+
+  } catch(err){
+    console.error(err);
+    alert("Failed to load contributors");
+  }
 }
 
+
+/* NFT FUNCTIONS */
+
+// Trade CTKN for NFT
+async function tradeForNFT() {
+
+  if(selectedNFTChoice === null){
+    alert("Select an NFT first");
+    return;
+  }
+
+  try {
+
+    const uri = NFT_CHOICES[selectedNFTChoice].uri;
+
+    // Mint NFT
+    const tx = await nftContract.mint(userAddress, uri);
+    await tx.wait();
+
+    loadNFTs();
+
+  } catch(err){
+    console.error(err);
+    alert("Mint failed");
+  }
+}
+
+
+// НУ ПОЧЕМУ ОН НОРМАЛЬН О НЕ РАБОТАЕТ АЛЛА АЛЛА
 async function loadNFTs() {
+
   const count = await nftContract.balanceOf(userAddress);
   let html = "";
-  for(let i=0; i<count; i++) {
-    const tokenId = await nftContract.tokenOfOwnerByIndex(userAddress, i);
-    const uri = await nftContract.tokenURI(tokenId);
-    html += `<img src="${uri}" width="64" height="64" onclick="selectNFT(${tokenId},'${uri}')"> `;
+
+  for (let i = 0; i < count; i++) {
+
+    try {
+
+      const tokenId = await nftContract.tokenOfOwnerByIndex(userAddress, i);
+      const uri = await nftContract.tokenURI(tokenId);
+
+      const metadataURL = uri.replace(
+        "ipfs://",
+        "https://cloudflare-ipfs.com/ipfs/"
+      );
+
+      const response = await fetch(metadataURL);
+
+      if(!response.ok) throw new Error("Metadata fetch failed");
+
+      const metadata = await response.json();
+
+      const imageURL = metadata.image.replace(
+        "ipfs://",
+        "https://cloudflare-ipfs.com/ipfs/"
+      );
+
+      html += `
+        <img 
+          src="${imageURL}" 
+          width="64" 
+          height="64"
+          style="cursor:pointer;margin:5px;border-radius:8px"
+          onclick="selectNFT(${tokenId}, '${imageURL}')"
+        >
+      `;
+
+    } catch(err) {
+
+      console.warn("NFT loading failed:", err);
+
+      html += `
+        <div style="width:64px;height:64px;background:#444;border-radius:8px;margin:5px"></div>
+      `;
+    }
   }
+
   el("nftList").innerHTML = html;
 }
 
+
+
+
+// Select NFT
 window.selectNFT = function(tokenId, uri) {
+
   selectedNFT = { tokenId, uri };
   el("setNFTBtn").style.display = "inline-block";
 };
 
+
+// Set NFT as Avatar
 window.setNFTAsAvatar = function() {
+
   if(selectedNFT) {
-    el("avatar").innerHTML = `<img src="${selectedNFT.uri}" style="border-radius:50%;vertical-align:middle;width:32px;height:32px;">`;
+
+    el("avatar").innerHTML = `
+      <img 
+        src="${selectedNFT.uri}" 
+        style="
+          border-radius:50%;
+          vertical-align:middle;
+          width:32px;
+          height:32px;
+        "
+      `;
   }
 };

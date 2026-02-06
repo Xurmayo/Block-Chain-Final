@@ -30,6 +30,8 @@ contract Crowdfunding {
 
     Campaign[] private _campaigns;
     mapping(uint256 => mapping(address => uint256)) public contributions;
+    mapping(uint256 => address[]) public campaignContributors;
+
 
     address public moderator;
     IContributorToken public rewardToken;
@@ -160,6 +162,9 @@ contract Crowdfunding {
         require(block.timestamp < c.deadline, "Deadline passed");
         require(msg.value > 0, "Zero contribution");
 
+        if (contributions[id][msg.sender] == 0) {
+            campaignContributors[id].push(msg.sender);
+            }
         c.raised += msg.value;
         contributions[id][msg.sender] += msg.value;
 
@@ -199,6 +204,14 @@ contract Crowdfunding {
 
         rewardToken.burn(msg.sender, amount);
         payable(msg.sender).transfer(amount);
+    }
+    function getCampaignContributors(uint256 id)
+        external
+        view
+        validCampaign(id)
+        returns (address[] memory)
+    {
+        return campaignContributors[id];
     }
 
     receive() external payable {}
