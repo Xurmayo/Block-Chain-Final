@@ -2,196 +2,348 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Open-Source Funding DApp</title>
-
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
-  <!-- Add blockies library -->
   <script src="https://unpkg.com/ethereum-blockies@0.1.1/blockies.min.js"></script>
-
   <style>
+    :root {
+      --bg-deep: #0a0e17;
+      --bg-card: #111827;
+      --bg-elevated: #1a2234;
+      --border: #2d3a52;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
     }
 
     header {
-      background: #020617;
-      padding: 16px 24px;
+      background: var(--bg-card);
+      padding: 14px 24px;
       display: flex;
       justify-content: space-between;
-      border-bottom: 1px solid #1e293b;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
     }
+
+    header .brand {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.02em;
+    }
+
+    header .wallet-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.9rem;
+    }
+
+    #avatar { display: inline-flex; align-items: center; }
+    #avatar img { border-radius: 50%; width: 32px; height: 32px; vertical-align: middle; }
+    #wallet { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+    #balance, #tokenBalance { font-family: 'JetBrains Mono', monospace; }
 
     .container {
       max-width: 1100px;
-      margin: auto;
-      padding: 24px;
+      margin: 0 auto;
+      padding: 28px 24px;
     }
 
     .card {
-      background: #020617;
-      border: 1px solid #1e293b;
-      border-radius: 12px;
-      padding: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
       margin-bottom: 20px;
     }
 
-    .hidden { display: none; }
+    .card h3 {
+      margin: 0 0 12px 0;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .hidden { display: none !important; }
 
     button {
-      background: #2563eb;
+      font-family: inherit;
+      background: var(--accent);
+      color: white;
       border: none;
-      border-radius: 6px;
-      padding: 8px 14px;
-      color: white;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
       cursor: pointer;
-      margin-top: 6px;
-      margin-right: 6px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      margin: 4px 8px 4px 0;
+      transition: background 0.15s;
     }
+    button:hover { background: var(--accent-hover); }
+    button.secondary { background: var(--bg-elevated); color: var(--text); }
+    button.secondary:hover { background: var(--border); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    button.secondary { background: #334155; }
-
-    input {
+    .input-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin: 12px 0 4px 0;
+    }
+    .input-label:first-of-type { margin-top: 0; }
+    input, textarea {
       width: 100%;
-      padding: 8px;
-      margin-top: 6px;
-      background: #020617;
-      border: 1px solid #1e293b;
-      border-radius: 6px;
-      color: white;
+      max-width: 420px;
+      padding: 10px 12px;
+      margin: 0 0 4px 0;
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
     }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-muted); }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
+      gap: 20px;
+    }
+
+    .campaign-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      transition: border-color 0.15s;
+    }
+    .campaign-card:hover { border-color: var(--accent); }
+
+    .campaign-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .campaign-description {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin: 6px 0 10px 0;
+      line-height: 1.45;
+      max-height: 3.6em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
     }
 
     .badge {
-      padding: 3px 10px;
+      padding: 4px 10px;
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 500;
       display: inline-block;
-      margin-top: 4px;
+      margin-bottom: 8px;
     }
-
-    .submitted { background:#64748b }
-    .active { background:#2563eb }
-    .successful { background:#16a34a }
-    .didnotsucceed { background:#dc2626 }    .did-not-succeed { background:#dc2626 }    .withdrawn { background:#475569 }
-    .rejected { background:#7c2d12 }
+    .badge.submitted { background: #64748b; }
+    .badge.active { background: var(--accent); }
+    .badge.successful { background: var(--success); }
+    .badge.did-not-succeed { background: var(--error); }
+    .badge.withdrawn { background: #475569; }
+    .badge.rejected { background: #7c2d12; }
 
     .progress {
-      background:#1e293b;
-      height:8px;
-      border-radius:6px;
-      overflow:hidden;
-      margin-top:6px;
+      background: var(--bg-elevated);
+      height: 8px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-bar {
+      background: var(--success);
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.2s;
     }
 
-    .progress-bar {
-      background:#22c55e;
-      height:100%;
+    .campaign-actions {
+      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .campaign-actions input[type="number"] {
+      width: 80px;
+      margin: 0;
+      display: inline-block;
     }
 
     .nft-modal {
-      background: #1e293b;
-      border: 2px solid #334155;
-      border-radius: 12px;
-      padding: 18px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
       margin: 12px 0;
-      box-shadow: 0 4px 24px #0008;
-      max-width: 400px;
+      box-shadow: var(--shadow);
+      max-width: 420px;
     }
-    .nft-choices img {
-      margin: 8px;
-      cursor: pointer;
-      border: 3px solid transparent;
-      border-radius: 12px;
-      transition: border 0.2s;
-      box-shadow: 0 2px 8px #0006;
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-    }
-    .nft-choices img.selected {
-      border: 3px solid #22c55e;
-      box-shadow: 0 0 0 4px #22c55e44;
+    .nft-choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
     }
     .nft-choices-label {
-      font-weight: bold;
-      margin-bottom: 8px;
+      font-weight: 600;
+      margin-bottom: 10px;
       display: block;
     }
+    .nft-choice {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      cursor: pointer;
+      border: 3px solid transparent;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .nft-choice:hover { border-color: var(--text-muted); }
+    .nft-choice.selected { border-color: var(--success); box-shadow: 0 0 0 2px var(--success); }
+
+    .nft-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .nft-list img {
+      width: 72px;
+      height: 72px;
+      border-radius: var(--radius-sm);
+      object-fit: cover;
+      cursor: pointer;
+      border: 2px solid var(--border);
+    }
+    .nft-list img:hover { border-color: var(--accent); }
+    .nft-list .nft-fallback {
+      width: 72px;
+      height: 72px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border: 2px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 32px 0 16px 0;
+    }
+
+    .empty-state {
+      color: var(--text-muted);
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .countdown { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--text-muted); }
   </style>
 </head>
-
 <body>
-
-<header>
-  <b>Open-Source Funding DApp</b>
-  <div>
-    <span id="avatar" style="vertical-align:middle;"></span>
-    <span id="wallet">Not connected</span> |
-    <span id="balance">0 ETH</span> |
-    <span id="tokenBalance">0 CTKN</span>
-  </div>
-</header>
-
-<div class="container">
-
-  <!-- LOGIN -->
-  <div id="login" class="card">
-    <h3>Select Role</h3>
-    <button onclick="login('creator')">Creator</button>
-    <button onclick="login('moderator')" class="secondary">Moderator</button>
-    <button onclick="login('contributor')" class="secondary">Contributor</button>
-  </div>
-
-  <!-- CREATOR -->
-  <div id="creatorUI" class="card hidden">
-    <h3>Creator Dashboard</h3>
-    <input id="title" placeholder="Title">
-    <input id="goal" placeholder="Goal (ETH)">
-    <input id="duration" placeholder="Duration (seconds)">
-    <button onclick="submitCampaign()">Submit Campaign</button>
-  </div>
-
-  <!-- MODERATOR -->
-  <div id="moderatorUI" class="card hidden">
-    <h3>Moderator Dashboard</h3>
-    <p>Review submitted campaigns below.</p>
-  </div>
-
-  <!-- CONTRIBUTOR -->
-  <div id="contributorUI" class="card hidden">
-    <h3>Contributor Dashboard</h3>
-    <input id="contributeCampaignId" placeholder="Campaign ID (0-based)">
-    <input id="contributeAmount" placeholder="ETH amount">
-    <button onclick="contributeFromUI()">Contribute</button>
-    <button onclick="refund()" class="secondary">Refund (failed)</button>
-  </div>
-
-  <!-- NFT SECTION -->
-  <div id="nftSection" class="card hidden">
-    <h3>NFT Badge</h3>
-    <button onclick="showNFTChoices()" id="tradeBtn">Trade 10 CTKN for NFT Badge</button>
-    <div id="nftChoicesModal" class="nft-modal hidden">
-      <div id="nftChoices" class="nft-choices"></div>
-      <button onclick="confirmNFTTrade()" id="confirmNFTBtn" class="secondary" disabled>Confirm Trade</button>
-      <button onclick="hideNFTChoices()" class="secondary">Cancel</button>
+  <header>
+    <span class="brand">Open-Source Funding DApp</span>
+    <div class="wallet-info">
+      <span id="avatar"></span>
+      <span id="wallet">Not connected</span>
+      <span id="balance">0 ETH</span>
+      <span id="tokenBalance">0 CTKN</span>
     </div>
-    <div id="nftList"></div>
-    <button onclick="setNFTAsAvatar()" id="setNFTBtn" class="secondary" style="display:none;">Set NFT as Avatar</button>
+  </header>
+
+  <div class="container">
+    <div id="login" class="card">
+      <h3>Select Role</h3>
+      <button type="button" data-role="creator">Creator</button>
+      <button type="button" class="secondary" data-role="moderator">Moderator</button>
+      <button type="button" class="secondary" data-role="contributor">Contributor</button>
+    </div>
+
+    <div id="creatorUI" class="card hidden">
+      <h3>Creator Dashboard</h3>
+      <label class="input-label" for="title">Title</label>
+      <input id="title" type="text" placeholder="Campaign title" autocomplete="off" />
+      <label class="input-label" for="description">Description</label>
+      <textarea id="description" placeholder="Describe what the campaign is for, how funds will be used, and why backers should contribute." rows="4"></textarea>
+      <label class="input-label" for="goal">Goal (ETH)</label>
+      <input id="goal" type="text" placeholder="e.g. 1.5" inputmode="decimal" />
+      <label class="input-label" for="duration">Duration (seconds)</label>
+      <input id="duration" type="text" placeholder="e.g. 86400 (24 hours)" inputmode="numeric" />
+      <button type="button" id="btnSubmitCampaign">Submit Campaign</button>
+    </div>
+
+    <div id="moderatorUI" class="card hidden">
+      <h3>Moderator Dashboard</h3>
+      <p style="margin:0;color:var(--text-muted);">Review submitted campaigns below and approve or reject them.</p>
+    </div>
+
+    <div id="contributorUI" class="card hidden">
+      <h3>Contributor Dashboard</h3>
+      <input id="contributeCampaignId" type="text" placeholder="Campaign ID (0-based)" inputmode="numeric" />
+      <input id="contributeAmount" type="text" placeholder="ETH amount" inputmode="decimal" />
+      <button type="button" id="btnContribute">Contribute</button>
+      <button type="button" class="secondary" id="btnRefund">Refund (failed campaign)</button>
+    </div>
+
+    <div id="nftSection" class="card hidden">
+      <h3>NFT Badge</h3>
+      <button type="button" id="btnTradeNFT">Trade 10 CTKN for NFT Badge</button>
+      <div id="nftChoicesModal" class="nft-modal hidden">
+        <span class="nft-choices-label">Choose your NFT badge:</span>
+        <div id="nftChoices" class="nft-choices"></div>
+        <button type="button" class="secondary" id="confirmNFTBtn" disabled>Confirm Trade</button>
+        <button type="button" class="secondary" id="btnHideNFTModal">Cancel</button>
+      </div>
+      <div id="nftList" class="nft-list"></div>
+      <button type="button" class="secondary hidden" id="setNFTBtn">Set NFT as Avatar</button>
+    </div>
+
+    <h2 class="section-title">Live Campaigns</h2>
+    <div id="campaigns" class="grid"></div>
   </div>
 
-  <h3>Live Campaigns</h3>
-  <div id="campaigns" class="grid"></div>
-
-</div>
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -21,6 +21,7 @@ contract Crowdfunding {
     struct Campaign {
         address creator;
         string title;
+        string description;
         uint256 goal;
         uint256 duration;
         uint256 deadline;
@@ -73,6 +74,7 @@ contract Crowdfunding {
         returns (
             address,
             string memory,
+            string memory,
             uint256,
             uint256,
             uint256,
@@ -83,6 +85,7 @@ contract Crowdfunding {
         return (
             c.creator,
             c.title,
+            c.description,
             c.goal,
             c.deadline,
             c.raised,
@@ -94,6 +97,7 @@ contract Crowdfunding {
 
     function submitCampaign(
         string memory title,
+        string memory description,
         uint256 goal,
         uint256 duration
     ) external {
@@ -104,6 +108,7 @@ contract Crowdfunding {
             Campaign({
                 creator: msg.sender,
                 title: title,
+                description: description,
                 goal: goal,
                 duration: duration,
                 deadline: 0,
