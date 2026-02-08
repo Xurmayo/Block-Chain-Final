@@ -1,12 +1,13 @@
 const hre = require("hardhat");
 
 async function main() {
-
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deploying contracts with account:", deployer.address);
 
   // ===== Deploy ContributorToken =====
-  const ContributorToken = await hre.ethers.getContractFactory("ContributorToken");
+  const ContributorToken = await hre.ethers.getContractFactory(
+    "ContributorToken",
+  );
   const token = await ContributorToken.deploy();
   await token.waitForDeployment();
 

@@ -22,7 +22,7 @@ const ABI = [
   "function moderator() view returns(address)",
   "function rewardToken() view returns(address)",
   "function getCampaignContributors(uint256) view returns(address[])",
-  "function contributions(uint256,address) view returns(uint256)"
+  "function contributions(uint256,address) view returns(uint256)",
 ];
 
 const STATES = [
@@ -32,12 +32,12 @@ const STATES = [
   "Successful",
   "Did not succeed",
   "Withdrawn",
-  "Rejected"
+  "Rejected",
 ];
 
 const TOKEN_ABI = [
   "function balanceOf(address) view returns (uint256)",
-  "function burn(address from, uint256 amount) external"
+  "function burn(address from, uint256 amount) external",
 ];
 
 // ContributorBadge address (update after deploy; Crowdfunding is CONTRACT_ADDRESS above)
@@ -46,25 +46,40 @@ const NFT_ABI = [
   "function mint(address to, string uri) external returns (uint256)",
   "function balanceOf(address owner) view returns (uint256)",
   "function tokenOfOwnerByIndex(address owner, uint256 index) view returns (uint256)",
-  "function tokenURI(uint256 tokenId) view returns (string)"
+  "function tokenURI(uint256 tokenId) view returns (string)",
 ];
 
 const ALLOWED_CHAIN_IDS = ["31337", "11155111", "17000"];
-const CHAIN_NAMES = { "31337": "Local", "11155111": "Sepolia", "17000": "Holesky" };
+const CHAIN_NAMES = { 31337: "Local", 11155111: "Sepolia", 17000: "Holesky" };
 
 const NFT_CHOICES = [
-  { name: "Gold Badge", uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/gold.json", img: "https://cdn-icons-png.flaticon.com/512/2583/2583344.png" },
-  { name: "Silver Badge", uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/silver.json", img: "https://cdn-icons-png.flaticon.com/512/2583/2583319.png" },
-  { name: "Bronze Badge", uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/bronze.json", img: "https://cdn-icons-png.flaticon.com/512/2583/2583434.png" }
+  {
+    name: "Gold Badge",
+    uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/gold.json",
+    img: "https://cdn-icons-png.flaticon.com/512/2583/2583344.png",
+  },
+  {
+    name: "Silver Badge",
+    uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/silver.json",
+    img: "https://cdn-icons-png.flaticon.com/512/2583/2583319.png",
+  },
+  {
+    name: "Bronze Badge",
+    uri: "ipfs://bafybeigdyrzt4kqk6ovrj2kz2xtnixl2v3k6v4d7m4ax3nctz7psq4t5su/bronze.json",
+    img: "https://cdn-icons-png.flaticon.com/512/2583/2583434.png",
+  },
 ];
 
-const DEFAULT_BADGE_IMG = "https://cdn-icons-png.flaticon.com/512/2583/2583344.png";
+const DEFAULT_BADGE_IMG =
+  "https://cdn-icons-png.flaticon.com/512/2583/2583344.png";
 
 let selectedNFTChoice = null;
 let nftContract;
 let selectedNFT = null;
 
-function el(id) { return document.getElementById(id); }
+function el(id) {
+  return document.getElementById(id);
+}
 
 function setText(elId, text) {
   const node = el(elId);
@@ -73,8 +88,16 @@ function setText(elId, text) {
 
 function escapeHtml(s) {
   const str = String(s);
-  const map = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-  return str.replace(/[&<>"']/g, function (c) { return map[c]; });
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  };
+  return str.replace(/[&<>"']/g, function (c) {
+    return map[c];
+  });
 }
 
 function setAvatarFromBlockies(address) {
@@ -82,7 +105,9 @@ function setAvatarFromBlockies(address) {
   if (!container) return;
   container.textContent = "";
   try {
-    const icon = blockies.create({ seed: (address || "").toLowerCase(), size: 8, scale: 4 }).toDataURL();
+    const icon = blockies
+      .create({ seed: (address || "").toLowerCase(), size: 8, scale: 4 })
+      .toDataURL();
     const img = document.createElement("img");
     img.setAttribute("src", icon);
     img.setAttribute("alt", "Avatar");
@@ -116,7 +141,9 @@ async function login(r) {
   const network = await provider.getNetwork();
   const chainIdStr = network.chainId.toString();
   if (!ALLOWED_CHAIN_IDS.includes(chainIdStr)) {
-    alert("Please switch to a supported network: Local (31337), Sepolia (11155111), or Holesky (17000).");
+    alert(
+      "Please switch to a supported network: Local (31337), Sepolia (11155111), or Holesky (17000).",
+    );
     return;
   }
 
@@ -151,8 +178,13 @@ async function login(r) {
   el("moderatorUI").classList.toggle("hidden", role !== "moderator");
   el("contributorUI").classList.toggle("hidden", role !== "contributor");
 
-  if (!NFT_CONTRACT_ADDRESS || NFT_CONTRACT_ADDRESS === "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266") {
-    alert("NFT contract address is not set. Update NFT_CONTRACT_ADDRESS in app.js after deployment.");
+  if (
+    !NFT_CONTRACT_ADDRESS ||
+    NFT_CONTRACT_ADDRESS === "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+  ) {
+    alert(
+      "NFT contract address is not set. Update NFT_CONTRACT_ADDRESS in app.js after deployment.",
+    );
     return;
   }
 
@@ -193,13 +225,27 @@ async function submitCampaign() {
   const description = (el("description") && el("description").value) || "";
   const goalStr = (el("goal") && el("goal").value) || "";
   const durationStr = (el("duration") && el("duration").value) || "";
-  if (!title.trim()) { alert("Please enter a title."); return; }
+  if (!title.trim()) {
+    alert("Please enter a title.");
+    return;
+  }
   const goal = parseFloat(goalStr);
   const duration = parseInt(durationStr, 10);
-  if (isNaN(goal) || goal <= 0) { alert("Please enter a valid goal (ETH)."); return; }
-  if (isNaN(duration) || duration <= 0) { alert("Please enter a valid duration (seconds)."); return; }
+  if (isNaN(goal) || goal <= 0) {
+    alert("Please enter a valid goal (ETH).");
+    return;
+  }
+  if (isNaN(duration) || duration <= 0) {
+    alert("Please enter a valid duration (seconds).");
+    return;
+  }
   try {
-    const tx = await contract.submitCampaign(title.trim(), description.trim(), ethers.parseEther(goalStr), duration);
+    const tx = await contract.submitCampaign(
+      title.trim(),
+      description.trim(),
+      ethers.parseEther(goalStr),
+      duration,
+    );
     await tx.wait();
     if (el("title")) el("title").value = "";
     if (el("description")) el("description").value = "";
@@ -214,40 +260,62 @@ async function submitCampaign() {
 
 async function contribute(campaignId, amount) {
   const amt = parseFloat(amount);
-  if (isNaN(amt) || amt <= 0) { alert("Please enter a valid ETH amount."); return; }
+  if (isNaN(amt) || amt <= 0) {
+    alert("Please enter a valid ETH amount.");
+    return;
+  }
   try {
-    const tx = await contract.contribute(parseInt(campaignId, 10), { value: ethers.parseEther(String(amt)) });
+    const tx = await contract.contribute(parseInt(campaignId, 10), {
+      value: ethers.parseEther(String(amt)),
+    });
     await tx.wait();
     const amountEl = el("amount_" + campaignId);
     if (amountEl) amountEl.value = "";
     await loadCampaigns(true);
   } catch (err) {
-    alert("Contribute failed: " + (err && err.message ? err.message : String(err)));
+    alert(
+      "Contribute failed: " + (err && err.message ? err.message : String(err)),
+    );
     console.error(err);
   }
 }
 
 async function contributeFromUI() {
-  const campaignId = (el("contributeCampaignId") && el("contributeCampaignId").value) || "";
+  const campaignId =
+    (el("contributeCampaignId") && el("contributeCampaignId").value) || "";
   const amount = (el("contributeAmount") && el("contributeAmount").value) || "";
-  if (!campaignId.trim() || !amount) { alert("Please enter campaign ID and ETH amount."); return; }
+  if (!campaignId.trim() || !amount) {
+    alert("Please enter campaign ID and ETH amount.");
+    return;
+  }
   const amt = parseFloat(amount);
-  if (isNaN(amt) || amt <= 0) { alert("Please enter a valid ETH amount."); return; }
+  if (isNaN(amt) || amt <= 0) {
+    alert("Please enter a valid ETH amount.");
+    return;
+  }
   try {
-    const tx = await contract.contribute(parseInt(campaignId, 10), { value: ethers.parseEther(amount) });
+    const tx = await contract.contribute(parseInt(campaignId, 10), {
+      value: ethers.parseEther(amount),
+    });
     await tx.wait();
     if (el("contributeCampaignId")) el("contributeCampaignId").value = "";
     if (el("contributeAmount")) el("contributeAmount").value = "";
     await loadCampaigns(true);
   } catch (err) {
-    alert("Contribute failed: " + (err && err.message ? err.message : String(err)));
+    alert(
+      "Contribute failed: " + (err && err.message ? err.message : String(err)),
+    );
     console.error(err);
   }
 }
 
 async function refund() {
-  const campaignId = (el("contributeCampaignId") && el("contributeCampaignId").value) || "";
-  if (!campaignId.trim()) { alert("Enter the campaign ID to refund from."); return; }
+  const campaignId =
+    (el("contributeCampaignId") && el("contributeCampaignId").value) || "";
+  if (!campaignId.trim()) {
+    alert("Enter the campaign ID to refund from.");
+    return;
+  }
   try {
     const tx = await contract.refund(parseInt(campaignId, 10));
     await tx.wait();
@@ -264,7 +332,9 @@ async function approveCampaignFromCard(id) {
     await tx.wait();
     await loadCampaigns(true);
   } catch (err) {
-    alert("Approve failed: " + (err && err.message ? err.message : String(err)));
+    alert(
+      "Approve failed: " + (err && err.message ? err.message : String(err)),
+    );
     console.error(err);
   }
 }
@@ -286,7 +356,9 @@ async function withdrawFromCard(id) {
     await tx.wait();
     await loadCampaigns(true);
   } catch (err) {
-    alert("Withdraw failed: " + (err && err.message ? err.message : String(err)));
+    alert(
+      "Withdraw failed: " + (err && err.message ? err.message : String(err)),
+    );
     console.error(err);
   }
 }
@@ -297,7 +369,9 @@ async function finalizeFromCard(id) {
     await tx.wait();
     await loadCampaigns(true);
   } catch (err) {
-    alert("Finalize failed: " + (err && err.message ? err.message : String(err)));
+    alert(
+      "Finalize failed: " + (err && err.message ? err.message : String(err)),
+    );
     console.error(err);
   }
 }
@@ -346,7 +420,7 @@ async function loadCampaigns(forceRender) {
         goal: campaignData[3].toString(),
         deadline: campaignData[4].toString(),
         raised: campaignData[5].toString(),
-        state: Number(campaignData[6])
+        state: Number(campaignData[6]),
       });
     }
   } catch (err) {
@@ -354,7 +428,11 @@ async function loadCampaigns(forceRender) {
     campaignsLoading = false;
     return;
   }
-  if (forceRender || campaignsCache.length !== newCampaigns.length || JSON.stringify(newCampaigns) !== JSON.stringify(campaignsCache)) {
+  if (
+    forceRender ||
+    campaignsCache.length !== newCampaigns.length ||
+    JSON.stringify(newCampaigns) !== JSON.stringify(campaignsCache)
+  ) {
     campaignsCache = newCampaigns;
     renderCampaigns();
   }
@@ -451,7 +529,12 @@ function renderCampaigns() {
       actions.appendChild(rejectBtn);
     }
 
-    if (role === "contributor" && stateIndex === 2 && deadline > 0 && now < deadline) {
+    if (
+      role === "contributor" &&
+      stateIndex === 2 &&
+      deadline > 0 &&
+      now < deadline
+    ) {
       const amountInput = document.createElement("input");
       amountInput.type = "number";
       amountInput.id = "amount_" + campaignId;
@@ -467,7 +550,11 @@ function renderCampaigns() {
       actions.appendChild(contributeBtn);
     }
 
-    if (role === "creator" && stateIndex === 3 && creator.toLowerCase() === userAddress.toLowerCase()) {
+    if (
+      role === "creator" &&
+      stateIndex === 3 &&
+      creator.toLowerCase() === userAddress.toLowerCase()
+    ) {
       const withdrawBtn = document.createElement("button");
       withdrawBtn.type = "button";
       withdrawBtn.textContent = "Withdraw";
@@ -520,7 +607,8 @@ function renderNFTChoices() {
   container.textContent = "";
   NFT_CHOICES.forEach(function (choice, idx) {
     const img = document.createElement("img");
-    img.className = "nft-choice" + (selectedNFTChoice === idx ? " selected" : "");
+    img.className =
+      "nft-choice" + (selectedNFTChoice === idx ? " selected" : "");
     img.setAttribute("src", choice.img);
     img.setAttribute("alt", choice.name);
     img.setAttribute("title", choice.name);
@@ -562,7 +650,9 @@ window.confirmNFTTrade = async function () {
     const uri = NFT_CHOICES[selectedNFTChoice].uri;
     const mintTx = await nftContract.mint(userAddress, uri);
     await mintTx.wait();
-    const burnTx = await tokenContract.connect(signer).burn(userAddress, burnAmount);
+    const burnTx = await tokenContract
+      .connect(signer)
+      .burn(userAddress, burnAmount);
     await burnTx.wait();
     hideNFTChoices();
     loadNFTs();
@@ -581,7 +671,10 @@ function resolveNFTImageUrl(uri) {
 }
 
 async function fetchMetadataImage(uri) {
-  const gatewayUrl = uri.replace(/^ipfs:\/\//, "https://cloudflare-ipfs.com/ipfs/");
+  const gatewayUrl = uri.replace(
+    /^ipfs:\/\//,
+    "https://cloudflare-ipfs.com/ipfs/",
+  );
   try {
     const res = await fetch(gatewayUrl);
     if (!res.ok) return null;
@@ -616,7 +709,10 @@ async function loadNFTs() {
       img.addEventListener("click", function () {
         selectedNFT = { tokenId: tokenId.toString(), uri: imageUrl };
         const setBtn = el("setNFTBtn");
-        if (setBtn) { setBtn.classList.remove("hidden"); setBtn.style.display = "inline-block"; }
+        if (setBtn) {
+          setBtn.classList.remove("hidden");
+          setBtn.style.display = "inline-block";
+        }
       });
       listEl.appendChild(img);
     }
@@ -636,7 +732,8 @@ function updateCountdowns() {
   nodes.forEach(function (node) {
     const deadline = parseInt(node.getAttribute("data-deadline"), 10);
     const left = Math.max(deadline - now, 0);
-    if (left === 0 && node.textContent.indexOf("Ended") === -1) justEnded = true;
+    if (left === 0 && node.textContent.indexOf("Ended") === -1)
+      justEnded = true;
     node.textContent = left > 0 ? "Time left: " + left + " sec" : "Ended";
   });
   if (justEnded && typeof loadCampaigns === "function") loadCampaigns(true);
@@ -654,13 +751,19 @@ function init() {
   bindLoginButtons();
   const campaignsEl = el("campaigns");
   if (campaignsEl) campaignsEl.addEventListener("click", handleCampaignAction);
-  if (el("btnSubmitCampaign")) el("btnSubmitCampaign").addEventListener("click", submitCampaign);
-  if (el("btnContribute")) el("btnContribute").addEventListener("click", contributeFromUI);
+  if (el("btnSubmitCampaign"))
+    el("btnSubmitCampaign").addEventListener("click", submitCampaign);
+  if (el("btnContribute"))
+    el("btnContribute").addEventListener("click", contributeFromUI);
   if (el("btnRefund")) el("btnRefund").addEventListener("click", refund);
-  if (el("btnTradeNFT")) el("btnTradeNFT").addEventListener("click", showNFTChoices);
-  if (el("btnHideNFTModal")) el("btnHideNFTModal").addEventListener("click", hideNFTChoices);
-  if (el("confirmNFTBtn")) el("confirmNFTBtn").addEventListener("click", confirmNFTTrade);
-  if (el("setNFTBtn")) el("setNFTBtn").addEventListener("click", setNFTAsAvatar);
+  if (el("btnTradeNFT"))
+    el("btnTradeNFT").addEventListener("click", showNFTChoices);
+  if (el("btnHideNFTModal"))
+    el("btnHideNFTModal").addEventListener("click", hideNFTChoices);
+  if (el("confirmNFTBtn"))
+    el("confirmNFTBtn").addEventListener("click", confirmNFTTrade);
+  if (el("setNFTBtn"))
+    el("setNFTBtn").addEventListener("click", setNFTAsAvatar);
   startCountdownTicker();
 }
 
