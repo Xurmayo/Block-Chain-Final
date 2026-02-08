@@ -7,7 +7,7 @@ It lets creators start campaigns, contributors fund them, moderators approve thi
 
 We put together this full-stack Web3 app to handle stuff like creating and managing campaigns, handling contributions through smart contracts, rewarding people with tokens, minting NFTs, and assigning roles like creator, contributor, or moderator. It also keeps track of who's contributing what, which adds some nice transparency.
 
-One thing we learned early on was how tricky it can be to balance decentralization with a bit of control—like having a moderator to vet campaigns so not just anything goes live.
+One thing we learned early on was how tricky it can be to balance decentralization with a bit of control-like having a moderator to vet campaigns so not just anything goes live.
 
 ## Technologies Used
 
@@ -35,7 +35,7 @@ The app breaks down into three main parts:
    - ContributorBadge.sol handles the ERC-721 NFTs as optional rewards.
 
 2. **Frontend client**  
-   - It's a simple single-page app with HTML and JS. No server involved—everything talks directly to the blockchain via Ethers.js. You connect with MetaMask, get a provider and signer, and interact with the contracts from there.
+   - It's a simple single-page app with HTML and JS. No server involved-everything talks directly to the blockchain via Ethers.js. You connect with MetaMask, get a provider and signer, and interact with the contracts from there.
 
 3. **How it all flows**  
    - Users connect their wallet, the app checks if they're on the right network (like our local test chain or Sepolia), and then they pick a role.  
@@ -44,12 +44,12 @@ The app breaks down into three main parts:
 
 ## Design and Implementation Decisions
 
-We went with a single moderator address (the one that deploys the contract) to approve campaigns—keeps things simple and prevents spam, but in a real-world version, we'd probably make it more decentralized.  
+We went with a single moderator address (the one that deploys the contract) to approve campaigns-keeps things simple and prevents spam, but in a real-world version, we'd probably make it more decentralized.  
 For the reward tokens, we transferred ownership to the crowdfunding contract so it controls minting on contributions, and burning happens on refunds or NFT trades.  
 Campaign deadlines are set as Unix timestamps when approved (current time plus the requested duration in seconds).  
 We kept the token minting straightforward: 1 CTKN per wei contributed, which makes rewards proportional without overcomplicating math.  
 On refunds for failed campaigns, we burn the tokens to match the ETH going back, keeping the supply in check.  
-The frontend uses role-based views to make it user-friendly—same wallet can switch between creator, moderator, or contributor modes, which was a nice touch we added after some testing.
+The frontend uses role-based views to make it user-friendly-same wallet can switch between creator, moderator, or contributor modes, which was a nice touch we added after some testing.
 
 One challenge was handling timestamps and deadlines accurately in Solidity; we had to double-check a lot with Hardhat's time manipulation in tests.
 
@@ -57,7 +57,7 @@ One challenge was handling timestamps and deadlines accurately in Solidity; we h
 
 Connection happens through Ethers.js with window.ethereum for MetaMask. We request accounts and check the chain ID to make sure it's one we support (31337 for local, 11155111 for Sepolia, 17000 for Holesky).  
 For reading data, we call view functions like campaignCount(), campaigns(i), or contributions(id, address) directly.  
-Transactions for writes—like submitCampaign() or contribute(id) with ETH value—go through the signer, and users confirm in their wallet.  
+Transactions for writes-like submitCampaign() or contribute(id) with ETH value-go through the signer, and users confirm in their wallet.  
 We pull the reward token address from the contract and create separate instances for token and NFT balances.  
 The UI updates dynamically with stuff like truncated wallet addresses, balances, campaign lists, and countdowns pulled from the chain. We use alerts for tx feedback, which isn't fancy but gets the job done.
 
@@ -77,7 +77,7 @@ The UI updates dynamically with stuff like truncated wallet addresses, balances,
 - Swap tokens for NFT badges
 - Check your donation history across campaigns
 
-We added the history view because it felt important for trust—seeing who else contributed and how much.
+We added the history view because it felt important for trust-seeing who else contributed and how much.
 
 ## Smart Contracts
 
@@ -159,7 +159,7 @@ Then, in another terminal:
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-Heads up: If you tweak the contracts, you'll need to redeploy—restart the node for a clean slate or just run deploy.js again, and update any addresses in app.js if they change.
+Heads up: If you tweak the contracts, you'll need to redeploy-restart the node for a clean slate or just run deploy.js again, and update any addresses in app.js if they change.
 
 ### Open the Frontend
 
@@ -177,7 +177,7 @@ Just open index.html in your browser, maybe with a live server extension for aut
 - Sepolia: Try sepoliafaucet.com or Alchemy's faucet.
 - Holesky: holesky-faucet.pk910.de works.
 
-We're only using test stuff here—no real money or mainnet.
+We're only using test stuff here-no real money or mainnet.
 
 ## Educational Purpose
 
