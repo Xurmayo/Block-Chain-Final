@@ -160,18 +160,33 @@ Contributors can:
 ## 📦 Project Structure
 
 ```
-contracts/
-  Crowdfunding.sol
-  ContributorBadge.sol
-  ContributorToken.sol
-frontend/
-  index.html
-  app.js
-scripts/
-  deploy.js
-test/
-  crowdfunding.test.js
-ASSIGNMENT_COMPLIANCE.md   # Final exam requirement checklist
+.
+├── .gitignore
+├── README.md
+├── artifacts/                # Compiled contract artifacts and build info
+│   ├── @openzeppelin/        # OpenZeppelin contract artifacts
+│   ├── build-info/           # Build information JSON files
+│   └── contracts/            # Project-specific contract artifacts
+├── cache/                    # Hardhat cache files
+│   └── solidity-files-cache.json
+├── contracts/                # Solidity smart contracts
+│   ├── ContributorBadge.sol
+│   ├── ContributorToken.sol
+│   └── Crowdfunding.sol
+├── frontend/                 # Simple web frontend
+│   ├── app.js
+│   ├── index.html
+│   └── styles.css
+├── hardhat.config.js         # Hardhat configuration
+├── ignition/                 # Ignition deployment modules
+│   └── modules/
+│       └── Lock.js
+├── package-lock.json
+├── package.json              # Node.js dependencies
+├── scripts/                  # Deployment scripts
+│   └── deploy.js
+└── test/                     # Test files
+    └── crowdfunding.test.js
 ```
 
 
@@ -221,17 +236,6 @@ This project was developed to demonstrate:
 - Web3 frontend integration (Ethers.js, MetaMask)
 - Token and NFT standards (ERC-20, ERC-721)
 - Decentralized application architecture (testnet only, no mainnet)
-
----
-
-## Submission Checklist (Final Examination)
-
-- [ ] **GitHub:** Upload repository link with full code.
-- [ ] **PDF:** Export this README and `ASSIGNMENT_COMPLIANCE.md` as a single PDF (technical documentation).
-- [ ] **Presentation:** Prepare slides covering project overview, architecture, demo, and Q&A.
-- [ ] **Per member:** Each team member must upload their submission as required by the course.
-
-**Defence (40 points):** Presentation and answers to questions during the defence.
 
 ---
 

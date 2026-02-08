@@ -41,21 +41,19 @@ describe("Crowdfunding basic flows", function () {
     await crowdfunding
       .connect(creator)
       .submitCampaign("T2", "", ethers.parseEther("5"), 2);
-    await crowdfunding.connect(deployer).approveCampaign(1);
+    await crowdfunding.connect(deployer).approveCampaign(0);
     await crowdfunding
       .connect(contributor)
-      .contribute(1, { value: ethers.parseEther("1") });
+      .contribute(0, { value: ethers.parseEther("1") });
     await ethers.provider.send("evm_increaseTime", [5]);
     await ethers.provider.send("evm_mine", []);
-    await crowdfunding.connect(deployer).finalize(1);
-
-    const c = await crowdfunding.campaigns(1);
-    expect(Number(c[6])).to.equal(4); // Failed
-
+    await crowdfunding.connect(deployer).finalize(0);
+    const c = await crowdfunding.campaigns(0);
+    expect(Number(c[6])).to.equal(4); // Failed state
     const tokenBalBefore = await token.balanceOf(contributor.address);
     expect(tokenBalBefore).to.equal(ethers.parseEther("1"));
+    await crowdfunding.connect(contributor).refund(0);
 
-    await crowdfunding.connect(contributor).refund(1);
     const tokenBalAfter = await token.balanceOf(contributor.address);
     expect(tokenBalAfter).to.equal(0);
   });
