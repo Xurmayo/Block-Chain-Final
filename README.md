@@ -1,163 +1,116 @@
-#  Open Source Funding DApp
+# Open Source Funding DApp
 
-A decentralized crowdfunding platform built using **Solidity**, **Hardhat**, **Ethers.js**, and **Web3 frontend technologies**.  
-The application allows creators to launch campaigns, contributors to fund them, moderators to approve campaigns, and contributors to earn NFT badges as rewards.
-
----
+This is a decentralized crowdfunding platform we built using Solidity for the smart contracts, Hardhat for development and testing, Ethers.js for blockchain interactions, and some basic web tech for the frontend.  
+It lets creators start campaigns, contributors fund them, moderators approve things, and backers get NFT badges as a thank-you.
 
 ## Project Overview
 
-This project demonstrates a full-stack Web3 decentralized application (DApp) that enables:
+We put together this full-stack Web3 app to handle stuff like creating and managing campaigns, handling contributions through smart contracts, rewarding people with tokens, minting NFTs, and assigning roles like creator, contributor, or moderator. It also keeps track of who's contributing what, which adds some nice transparency.
 
-- Campaign creation and management
-- Smart contract-based crowdfunding
-- Token rewards for contributors
-- NFT badge minting system
-- Role-based access (Creator, Contributor, Moderator)
-- Contributor tracking and transparency
+One thing we learned early on was how tricky it can be to balance decentralization with a bit of control—like having a moderator to vet campaigns so not just anything goes live.
 
----
+## Technologies Used
 
-##  Technologies Used
-
-### Blockchain
-- Solidity
-- Hardhat
-- Ethereum Local Network
+### Blockchain Side
+- Solidity for writing the contracts
+- Hardhat for local development and deployment
+- Running on Ethereum test networks like local Hardhat, Sepolia, or Holesky
 
 ### Frontend
-- JavaScript
-- HTML/CSS
-- Ethers.js
+- Plain JavaScript
+- HTML and CSS for the interface
+- Ethers.js to connect everything to the blockchain
 
-### Token Standards
-- ERC20 (Contributor Reward Token)
-- ERC721 (NFT Badge System)
+### Token Stuff
+- ERC20 for the contributor reward tokens
+- ERC721 for the NFT badges
 
----
+## Application Architecture
 
-##  Application Architecture
+The app breaks down into three main parts:
 
-The DApp has three layers:
+1. **Smart contracts on the blockchain**  
+   - Crowdfunding.sol manages the whole campaign process: starting them, taking contributions, wrapping things up, and handling refunds. It also deals with minting and burning reward tokens.  
+   - ContributorToken.sol is our ERC-20 token (CTKN). We made sure only the crowdfunding contract can mint them, but users can burn theirs if they want, like to swap for an NFT.  
+   - ContributorBadge.sol handles the ERC-721 NFTs as optional rewards.
 
-1. **Smart contracts (blockchain)**  
-   - **Crowdfunding.sol** – campaign lifecycle, contributions, finalization, refunds, moderator actions. Holds campaign state and uses the reward token for mint/burn.  
-   - **ContributorToken.sol** – ERC-20 CTKN; only the Crowdfunding contract can mint; users can burn (e.g. for NFT trade).  
-   - **ContributorBadge.sol** – ERC-721 NFTs; optional reward for contributors.
+2. **Frontend client**  
+   - It's a simple single-page app with HTML and JS. No server involved—everything talks directly to the blockchain via Ethers.js. You connect with MetaMask, get a provider and signer, and interact with the contracts from there.
 
-2. **Frontend (client)**  
-   - Single-page app (HTML + JavaScript). Uses Ethers.js to create a provider (MetaMask), signer, and contract instances. No backend server; all reads/writes go to the blockchain.
+3. **How it all flows**  
+   - Users connect their wallet, the app checks if they're on the right network (like our local test chain or Sepolia), and then they pick a role.  
+   - Creators submit campaign ideas, moderators approve or reject, contributors send ETH to active ones.  
+   - The contract mints CTKN based on contributions. When the deadline hits, anyone can finalize it; creators withdraw if it succeeded, or contributors get refunds (and their tokens get burned) if it flopped.
 
-3. **Interaction flow**  
-   - User connects MetaMask → app checks chain ID (31337 / Sepolia / Holesky) → user picks role (Creator / Moderator / Contributor).  
-   - Creator submits campaigns; Moderator approves or rejects; Contributors send ETH via `contribute()`.  
-   - Contract mints CTKN on each contribution; on deadline, anyone can call `finalize()`; creator can `withdraw()` if successful, or contributors can `refund()` if failed.
+## Design and Implementation Decisions
 
----
+We went with a single moderator address (the one that deploys the contract) to approve campaigns—keeps things simple and prevents spam, but in a real-world version, we'd probably make it more decentralized.  
+For the reward tokens, we transferred ownership to the crowdfunding contract so it controls minting on contributions, and burning happens on refunds or NFT trades.  
+Campaign deadlines are set as Unix timestamps when approved (current time plus the requested duration in seconds).  
+We kept the token minting straightforward: 1 CTKN per wei contributed, which makes rewards proportional without overcomplicating math.  
+On refunds for failed campaigns, we burn the tokens to match the ETH going back, keeping the supply in check.  
+The frontend uses role-based views to make it user-friendly—same wallet can switch between creator, moderator, or contributor modes, which was a nice touch we added after some testing.
 
-##  Design and Implementation Decisions
+One challenge was handling timestamps and deadlines accurately in Solidity; we had to double-check a lot with Hardhat's time manipulation in tests.
 
-- **Moderator role:** One address (deployer) approves/rejects campaigns so only vetted campaigns go live.  
-- **Reward token ownership:** CTKN ownership is transferred to the Crowdfunding contract so only it can mint (on contribute) and users/contract can burn (refund, NFT trade).  
-- **Campaign deadline:** Stored as a Unix timestamp set when a moderator approves (current time + duration).  
-- **1:1 token mint:** One CTKN per wei contributed keeps the model simple and proportional.  
-- **Refund and burn:** On failed campaigns, refund restores ETH and burns the same amount of CTKN to keep supply consistent.  
-- **Frontend roles:** UI is role-based (Creator / Moderator / Contributor) for clarity; the same wallet can switch roles.
+## Frontend-to-Blockchain Interaction
 
----
+Connection happens through Ethers.js with window.ethereum for MetaMask. We request accounts and check the chain ID to make sure it's one we support (31337 for local, 11155111 for Sepolia, 17000 for Holesky).  
+For reading data, we call view functions like campaignCount(), campaigns(i), or contributions(id, address) directly.  
+Transactions for writes—like submitCampaign() or contribute(id) with ETH value—go through the signer, and users confirm in their wallet.  
+We pull the reward token address from the contract and create separate instances for token and NFT balances.  
+The UI updates dynamically with stuff like truncated wallet addresses, balances, campaign lists, and countdowns pulled from the chain. We use alerts for tx feedback, which isn't fancy but gets the job done.
 
-##  Frontend-to-Blockchain Interaction
+## Features
 
-- **Connection:** `ethers.BrowserProvider(window.ethereum)` and `provider.send("eth_requestAccounts", [])` to connect MetaMask.  
-- **Network check:** `provider.getNetwork()` and `chainId` validation (31337, 11155111, 17000).  
-- **Reading data:** View functions are called with `contract.campaignCount()`, `contract.campaigns(i)`, `contract.contributions(id, address)`, etc., using the same provider/signer.  
-- **Writing (transactions):** State-changing calls use the signer: `contract.submitCampaign(...)`, `contract.contribute(id, { value })`, etc. User confirms each tx in MetaMask.  
-- **Token/NFT:** Reward token address is read from `contract.rewardToken()`. NFT and ETH/CTKN balances are read via separate contract instances.  
-- **Display:** Wallet address (truncated), ETH and CTKN balances, campaign list and countdown are updated from on-chain data; success/error feedback is shown via alerts after transactions.
+### Creator
+- Submit new crowdfunding campaigns with details like title, description, goal, and duration
+- Withdraw funds once a campaign succeeds
 
----
+### Moderator
+- Review and approve or reject submitted campaigns
+- Basically, gatekeep which ones go active
 
-##  Features
+### Contributor
+- Send ETH to support active campaigns
+- Get CTKN reward tokens based on your donation
+- Swap tokens for NFT badges
+- Check your donation history across campaigns
 
-### 👨‍🎨 Creator
-- Submit crowdfunding campaigns
-- Withdraw funds after successful campaign
+We added the history view because it felt important for trust—seeing who else contributed and how much.
 
-### 🛡️ Moderator
-- Approve or reject campaigns
-- Control campaign activation
+## Smart Contracts
 
-### 💰 Contributor
-- Contribute ETH to campaigns
-- Receive reward tokens (CTKN)
-- Trade tokens for NFT badges
-- View contributor donation history
+### Crowdfunding Contract
+This is the core one. It covers submitting campaigns (with title, desc, goal, duration), tracking contributions by user and campaign, refunds with token burns for failures, and states like Submitted, Active, Successful, Failed, Withdrawn, or Rejected.  
+You can get lists of contributors for a campaign or check specific contributions. Finalize gets called after deadline to lock in success or failure.
 
----
+### Contributor Token (ERC20)
+Mints rewards proportional to donations. Tokens can be burned when trading for NFTs or on refunds.
 
-##  Smart Contracts
-
-###  Crowdfunding Contract
-Handles:
-- Campaign submission (title, description, funding goal, duration in seconds)
-- Contribution tracking per user and per campaign
-- Refund logic for failed campaigns (with token burn)
-- Campaign states (Submitted → Active → Successful/Failed → Withdrawn, or Rejected)
-- Contributor history via `getCampaignContributors(id)` and `contributions(id, address)`
-- Finalization when deadline is reached (`finalize(id)`)
-
----
-
-###  Contributor Token (ERC20)
-- Reward contributors based on donation amount
-- Tokens can be burned to obtain NFTs
-
----
-
-###  Contributor Badge NFT (ERC721)
-- Mint NFT badges
-- Represents contributor achievements
-
----
+### Contributor Badge NFT (ERC721)
+Lets you mint badges as a fun achievement for contributing.
 
 ## Campaign States
 
 | State | Description |
 |----------|-------------|
-| Submitted | Waiting moderator approval |
-| Active | Campaign collecting funds |
-| Successful | Funding goal reached |
-| Failed | Goal not reached |
-| Withdrawn | Funds claimed by creator |
-| Rejected | Campaign rejected |
-
----
+| Submitted | Waiting for moderator approval |
+| Active | Open for contributions |
+| Successful | Hit the funding goal |
+| Failed | Didn't reach the goal |
+| Withdrawn | Creator took the funds |
+| Rejected | Moderator said no |
 
 ## Contributor Transparency Feature
 
-The application allows users to:
-
-- View all contributors to a campaign
-- See wallet addresses
-- View total donated amount per contributor
-
-This improves transparency and trust in fundraising.
-
----
+Users can see all contributors to a campaign, including their wallet addresses and total amounts donated. We think this builds more trust in the system, especially since everything's on-chain anyway.
 
 ## NFT Reward System
 
-Contributors can:
+After donating and getting CTKN, you can burn some to mint badges like Gold, Silver, or Bronze. It was a cool way to add gamification, and we had fun designing the tiers during development.
 
-- Earn CTKN tokens from donations
-- Burn tokens to mint NFT badges:
-  - 🥇 Gold Badge
-  - 🥈 Silver Badge
-  - 🥉 Bronze Badge
-
----
-
-## 📦 Project Structure
+## Project Structure
 
 ```
 .
@@ -189,12 +142,9 @@ Contributors can:
     └── crowdfunding.test.js
 ```
 
-
----
-
 ## Installation & Setup
 
-###  Clone Repository
+### Clone the Repo
 
 ```
 git clone https://github.com/Xurmayo/Block-Chain-Final.git
@@ -203,45 +153,38 @@ npm install
 npx hardhat node
 ```
 
-In a **second terminal**:
+Then, in another terminal:
 
 ```
 npx hardhat run scripts/deploy.js --network localhost
 ```
 
-**Important:** After any smart contract change (e.g. adding new fields or functions), you must **redeploy**: restart the node (to get a fresh chain) or run `deploy.js` again on a new node, then use the printed addresses in `frontend/app.js` if they differ.
+Heads up: If you tweak the contracts, you'll need to redeploy—restart the node for a clean slate or just run deploy.js again, and update any addresses in app.js if they change.
 
-### Open frontend/index.html using Live Server or browser.
+### Open the Frontend
+
+Just open index.html in your browser, maybe with a live server extension for auto-reloads.
 
 ### Wallet Setup
 
-1. Install [MetaMask](https://metamask.io/).
-2. **Local network:** Add Custom RPC (e.g. http://127.0.0.1:8545, chainId 31337). Import test accounts from Hardhat node (Account #0 is moderator).
-3. **Testnet (Sepolia/Holesky):** Switch MetaMask to Sepolia or Holesky. Get free test ETH from a faucet (see below).
+1. Get MetaMask if you don't have it.
+2. For local testing: Add a custom RPC like http://127.0.0.1:8545 with chainId 31337. Import accounts from the Hardhat node output (the first one's the moderator, preloaded with ETH).
+3. For testnets: Switch to Sepolia or Holesky in MetaMask and grab free test ETH from faucets.
 
-### Obtaining Test ETH
+### Getting Test ETH
 
-- **Local (Hardhat):** Run `npx hardhat node`; use the printed private keys to import accounts in MetaMask. These accounts are prefunded with test ETH.
-- **Sepolia:** Use [Sepolia Faucet](https://sepoliafaucet.com/) or [Alchemy Sepolia Faucet](https://www.alchemy.com/faucets/ethereum-sepolia).
-- **Holesky:** Use [Holesky Faucet](https://holesky-faucet.pk910.de/) or similar.
+- Local: Those imported accounts come with fake ETH.
+- Sepolia: Try sepoliafaucet.com or Alchemy's faucet.
+- Holesky: holesky-faucet.pk910.de works.
 
-Only test networks and test tokens are used; mainnet and real cryptocurrency are not used.
+We're only using test stuff here—no real money or mainnet.
 
+## Educational Purpose
 
-### Educational Purpose
+We built this as a way to learn about smart contract design with Solidity and OpenZeppelin, hooking up frontends with Ethers.js and MetaMask, and working with ERC-20 and ERC-721 tokens. It's all testnet-based, no mainnet deployment. It was a great project for understanding decentralized apps, though gas optimization was tougher than we expected.
 
-This project was developed to demonstrate:
+## Authors
 
-- Smart contract design (Solidity, OpenZeppelin)
-- Web3 frontend integration (Ethers.js, MetaMask)
-- Token and NFT standards (ERC-20, ERC-721)
-- Decentralized application architecture (testnet only, no mainnet)
-
----
-
-### Authors
-
-**Alisher Amangeldi & Nurzhan Nurlybek**  
+Alisher Amangeldi & Nurzhan Nurlybek  
 SE-2432  
 Astana IT University
-
