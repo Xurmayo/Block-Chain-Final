@@ -9,13 +9,13 @@ interface IContributorToken {
 contract Crowdfunding {
 
     enum CampaignState {
-        Submitted,     // 0
-        Approved,      // 1 (kept for ABI compatibility)
-        Active,        // 2
-        Successful,    // 3
-        Failed,        // 4
-        Withdrawn,     // 5
-        Rejected       // 6
+        Submitted,
+        Approved, // unused, kept so indices don't shift
+        Active,
+        Successful,
+        Failed,
+        Withdrawn,
+        Rejected
     }
 
     struct Campaign {
@@ -37,8 +37,6 @@ contract Crowdfunding {
     address public moderator;
     IContributorToken public rewardToken;
 
-    /* ========== MODIFIERS ========== */
-
     modifier onlyModerator() {
         require(msg.sender == moderator, "Not moderator");
         _;
@@ -54,14 +52,10 @@ contract Crowdfunding {
         _;
     }
 
-    /* ========== CONSTRUCTOR ========== */
-
     constructor(address tokenAddress) {
         moderator = msg.sender;
         rewardToken = IContributorToken(tokenAddress);
     }
-
-    /* ========== VIEW FUNCTIONS (ABI MATCH) ========== */
 
     function campaignCount() external view returns (uint256) {
         return _campaigns.length;
@@ -92,8 +86,6 @@ contract Crowdfunding {
             uint8(c.state)
         );
     }
-
-    /* ========== CREATOR ========== */
 
     function submitCampaign(
         string memory title,
@@ -130,8 +122,6 @@ contract Crowdfunding {
         payable(c.creator).transfer(c.raised);
     }
 
-    /* ========== MODERATOR ========== */
-
     function approveCampaign(uint256 id)
         external
         validCampaign(id)
@@ -154,8 +144,6 @@ contract Crowdfunding {
 
         c.state = CampaignState.Rejected;
     }
-
-    /* ========== CONTRIBUTOR ========== */
 
     function contribute(uint256 id)
         external

@@ -53,6 +53,64 @@ The frontend uses role-based views to make it user-friendly-same wallet can swit
 
 One challenge was handling timestamps and deadlines accurately in Solidity; we had to double-check a lot with Hardhat's time manipulation in tests.
 
+## How Accounts and Contracts Interact
+
+To really understand what's going on, you need to know there are three types of accounts at play: the moderator, creators, and contributors. Each one talks to the contracts differently.
+
+### The Moderator (Deployer)
+
+The first account that runs the deploy script becomes the moderator automatically-the Crowdfunding constructor saves `msg.sender` as the moderator address. This is the only account that can call `approveCampaign()` and `rejectCampaign()`. If anyone else tries, the `onlyModerator` modifier reverts the transaction. In practice, when you spin up a local Hardhat node, Account #0 is the deployer and therefore the moderator.
+
+Moderators also have a fuller view of the platform-rejected and withdrawn campaigns are hidden from creators and contributors to keep the UI clean, but the moderator can still see them.
+
+### Creators
+
+Any address can be a creator-there's no whitelist or registration. You just call `submitCampaign()` with your title, description, goal (in wei), and duration (in seconds). The contract stores your address as the campaign's creator. Later, only you can call `withdraw()` on that campaign because of the `onlyCreator` modifier, which checks `msg.sender` against the stored creator address.
+
+### Contributors
+
+Same deal-any address can contribute. When you call `contribute(campaignId)` and attach ETH, a few things happen in one transaction:
+1. Your ETH gets added to the campaign's `raised` amount.
+2. Your address and amount get tracked in the `contributions` mapping.
+3. If it's your first time contributing to that campaign, your address gets pushed to `campaignContributors[id]` so we can list all contributors later.
+4. The Crowdfunding contract calls `rewardToken.mint(msg.sender, msg.value)` to mint CTKN directly to your wallet.
+5. If the total raised hits the goal, the campaign flips to Successful right there.
+
+### Cross-Contract Communication
+
+This part is probably the trickiest to wrap your head around. We have three separate contracts deployed, and they need to talk to each other:
+
+- **Crowdfunding <-> ContributorToken**: During deployment, we first deploy the token, then deploy Crowdfunding with the token's address passed in. After that we call `token.transferOwnership(crowdfundingAddress)` so the Crowdfunding contract becomes the owner of the token. This matters because `mint()` on the token has an `onlyOwner` modifier-so only Crowdfunding can create new tokens. When someone contributes, Crowdfunding calls `rewardToken.mint()`. When someone gets a refund, it calls `rewardToken.burn()`. The token trusts these calls because they come from its owner.
+
+- **Frontend <-> ContributorBadge**: The NFT badge contract is more standalone. The frontend handles the trading flow itself: it checks your CTKN balance, burns 10 tokens through the token contract, and then calls `mint()` on the badge contract separately. These are two separate transactions, not one atomic operation-we kept it simple since it's a learning project.
+
+### Full Campaign Lifecycle (On-Chain)
+
+Here's what actually happens for each transaction during a campaign's life:
+
+1. **Creator calls `submitCampaign("My Project", "Cool idea", 1 ether, 86400)`**
+   The contract creates a new Campaign struct, stores the caller as creator, sets state to Submitted, and pushes it to the `_campaigns` array. The deadline stays 0 at this point because the campaign hasn't been approved yet.
+
+2. **Moderator calls `approveCampaign(0)`**
+   The modifier checks that `msg.sender == moderator`. The function flips the state to Active and calculates the deadline as `block.timestamp + duration`. So if the duration was 86400 (one day), the campaign expires exactly 24 hours from this approval.
+
+3. **Contributor calls `contribute(0)` with `{value: 0.5 ether}`**
+   The function checks the campaign is Active and the deadline hasn't passed. It records the ETH, updates `raised`, and calls `rewardToken.mint(contributor, 0.5 ether)` which mints 500000000000000000 CTKN tokens. Since 0.5 < 1 (the goal), the campaign stays Active.
+
+4. **Another contributor sends `{value: 0.7 ether}`**
+   Same flow. Now raised = 1.2 ether which is >= the 1 ether goal, so the contract sets the state to Successful right in the same transaction.
+
+5. **Creator calls `withdraw(0)`**
+   The `onlyCreator` modifier checks the caller. The function requires state == Successful, then changes state to Withdrawn and transfers all 1.2 ether to the creator's address via `transfer()`.
+
+**If the campaign fails instead** (doesn't hit the goal before the deadline):
+
+4. **Anyone calls `finalize(0)` after the deadline**
+   The function checks `block.timestamp >= deadline` and that the campaign is still Active. Since raised < goal, it sets the state to Failed.
+
+5. **Original contributor calls `refund(0)`**
+   Checks state == Failed, looks up how much the contributor deposited, zeros out their record (so they can't double-refund), burns their CTKN tokens via the token contract, and sends their ETH back.
+
 ## Frontend-to-Blockchain Interaction
 
 Connection happens through Ethers.js with window.ethereum for MetaMask. We request accounts and check the chain ID to make sure it's one we support (31337 for local, 11155111 for Sepolia, 17000 for Holesky).  
@@ -70,6 +128,7 @@ The UI updates dynamically with stuff like truncated wallet addresses, balances,
 ### Moderator
 - Review and approve or reject submitted campaigns
 - Basically, gatekeep which ones go active
+- Can see rejected and withdrawn campaigns (hidden from other roles to keep the feed clean)
 
 ### Contributor
 - Send ETH to support active campaigns

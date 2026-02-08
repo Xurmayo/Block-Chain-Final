@@ -7,8 +7,8 @@ let userAddress = "";
 let campaignsCache = [];
 let contractModerator = "";
 
-// Update these after running: npx hardhat run scripts/deploy.js --network localhost
-const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"; // Crowdfunding
+// update this after deploy
+const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512";
 const ABI = [
   "function campaignCount() view returns(uint256)",
   "function campaigns(uint256) view returns(address,string,string,uint256,uint256,uint256,uint8)",
@@ -40,7 +40,7 @@ const TOKEN_ABI = [
   "function burn(address from, uint256 amount) external",
 ];
 
-// ContributorBadge address (update after deploy; Crowdfunding is CONTRACT_ADDRESS above)
+// update this after deploy too
 const NFT_CONTRACT_ADDRESS = "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9";
 const NFT_ABI = [
   "function mint(address to, string uri) external returns (uint256)",
@@ -462,6 +462,10 @@ function renderCampaigns() {
     const deadline = Number(c.deadline);
     const raised = Number(ethers.formatEther(c.raised));
     const stateIndex = Number(c.state);
+
+    // only moderators see rejected and withdrawn campaigns
+    if (role !== "moderator" && (stateIndex === 5 || stateIndex === 6)) return;
+
     const state = STATES[stateIndex] || "Unknown";
     const stateClass = state.toLowerCase().replace(/\s+/g, "-");
     const pct = goal ? Math.min((raised / goal) * 100, 100) : 0;
