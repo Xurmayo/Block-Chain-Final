@@ -193,6 +193,7 @@ async function login(r) {
   loadNFTs();
 
   await loadCampaigns(true);
+  updateContributorCounter();
 }
 
 function bindLoginButtons() {
@@ -435,6 +436,7 @@ async function loadCampaigns(forceRender) {
   ) {
     campaignsCache = newCampaigns;
     renderCampaigns();
+    updateContributorCounter();
   }
   campaignsLoading = false;
 }
@@ -743,6 +745,55 @@ function updateCountdowns() {
   if (justEnded && typeof loadCampaigns === "function") loadCampaigns(true);
 }
 
+async function updateContributorCounter() {
+  if (!contract) return;
+  try {
+    const count = Number(await contract.campaignCount());
+    const totals = {};
+
+    for (let i = 0; i < count; i++) {
+      const contributors = await contract.getCampaignContributors(i);
+      for (const addr of contributors) {
+        const amount = await contract.contributions(i, addr);
+        if (!totals[addr]) {
+          totals[addr] = ethers.toBigInt(0);
+        }
+        totals[addr] += ethers.toBigInt(amount);
+      }
+    }
+
+    const addresses = Object.keys(totals);
+    setText("contributorCountValue", String(addresses.length));
+
+    const counterEl = el("contributorCounter");
+    if (counterEl) {
+      counterEl.classList.remove("hidden");
+      counterEl._contributorData = totals;
+    }
+  } catch (err) {
+    console.warn("Failed to update contributor counter", err);
+  }
+}
+
+function showAllTimeContributors() {
+  const counterEl = el("contributorCounter");
+  if (!counterEl || !counterEl._contributorData) return;
+
+  const totals = counterEl._contributorData;
+  const addresses = Object.keys(totals);
+
+  if (addresses.length === 0) {
+    alert("No contributors across all campaigns.");
+    return;
+  }
+
+  let message = "All-Time Contributors:\n\n";
+  addresses.forEach(function (addr) {
+    message += addr + " \u2192 " + ethers.formatEther(totals[addr]) + " ETH\n";
+  });
+  alert(message);
+}
+
 let countdownIntervalId = null;
 
 function startCountdownTicker() {
@@ -768,6 +819,8 @@ function init() {
     el("confirmNFTBtn").addEventListener("click", confirmNFTTrade);
   if (el("setNFTBtn"))
     el("setNFTBtn").addEventListener("click", setNFTAsAvatar);
+  if (el("contributorCounter"))
+    el("contributorCounter").addEventListener("click", showAllTimeContributors);
   startCountdownTicker();
 }
 
